@@ -22,22 +22,36 @@ namespace TesteDeConexao
             if (!ValidateChildren(ValidationConstraints.Enabled))
                 return;
 
-            AdicionarMensagemNoHistorico("Testando...");
+            
 
             BloquearBotao();
 
-            var servidor = txtBancoDeDados.Text;
+            var servidor = txtServidor.Text;
             var porta = txtPorta.Text;
             var bancoDeDados = BancoDeDados;
             var usuario = txtUsuario.Text;
             var senha = txtSenha.Text;
 
-            var dt = new DataTable();
+            AdicionarMensagemNoHistorico("Testando Modo 1 ...");
+
             _cnxStr = $"Data Source={servidor},{porta};Initial Catalog={bancoDeDados};Persist Security Info=True;User Id={usuario};Password={senha};MultipleActiveResultSets=True;App=TesteDeConexao";
+
+            if (!TestaConexao())
+            {
+                AdicionarMensagemNoHistorico("Testando Modo 2 ...");
+                _cnxStr = $"Server={servidor},{porta};Database={bancoDeDados};User Id={usuario};Password={senha}";
+                TestaConexao();
+            }
+
+            HabilitarBotao();
+        }
+
+        private bool TestaConexao()
+        {
+            var dt = new DataTable();
 
             using (var conn = new SqlConnection(_cnxStr))
             {
-
                 try
                 {
                     var sqlComm = new SqlCommand("SELECT @@VERSION", conn)
@@ -45,7 +59,7 @@ namespace TesteDeConexao
                         CommandType = CommandType.Text
                     };
 
-                    var da = new SqlDataAdapter { SelectCommand = sqlComm };
+                    var da = new SqlDataAdapter {SelectCommand = sqlComm};
 
                     da.Fill(dt);
 
@@ -58,17 +72,19 @@ namespace TesteDeConexao
                     var versao = dt.Rows[0][0].ToString();
 
                     AdicionarMensagemNoHistorico($"Versão {versao}");
+
+                    return true;
                 }
                 catch (Exception ex)
                 {
                     AdicionarMensagemNoHistorico("Falhou :\\");
                     AdicionarMensagemNoHistorico(ex.Message);
+
+                    return false;
                 }
+            } // using
 
-            }
-
-            HabilitarBotao();
-        }
+        } // function
 
         private void HabilitarBotao()
         {
@@ -99,16 +115,16 @@ namespace TesteDeConexao
 
         private void txtBancoDeDados_Validating(object sender, CancelEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtBancoDeDados.Text))
+            if (string.IsNullOrWhiteSpace(txtServidor.Text))
             {
                 e.Cancel = true;
-                txtBancoDeDados.Focus();
-                errorProvider1.SetError(txtBancoDeDados, "Você precisa preencher o nome ou IP do banco de dados");
+                txtServidor.Focus();
+                errorProvider1.SetError(txtServidor, "Você precisa preencher o nome ou IP do banco de dados");
             }
             else
             {
                 e.Cancel = false;
-                errorProvider1.SetError(txtBancoDeDados, "");
+                errorProvider1.SetError(txtServidor, "");
             }
         }
 
@@ -145,7 +161,7 @@ namespace TesteDeConexao
         private void Main_Load(object sender, EventArgs e)
         {
 #if DEBUG
-            txtBancoDeDados.Text = "localhost";
+            txtServidor.Text = "localhost";
             txtUsuario.Text = "sa";
             txtSenha.Text = "Pass@word";
 #endif
